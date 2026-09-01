@@ -1,0 +1,8 @@
+.git
+.idea
+*.iml
+target
+Dockerfile
+docker-compose.yaml
+README.md
+.env
