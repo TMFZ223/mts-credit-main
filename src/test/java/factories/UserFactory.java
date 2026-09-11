@@ -136,7 +136,7 @@ public class UserFactory {
 
     public static AuthenticationRequest authenticateWithUnknownEmail() {
         return AuthenticationRequest.builder()
-                .email(PropertyReader.getProperty("unknown.email"))
+                .email(generateValidEmail())
                 .password(PropertyReader.getProperty("admin.password"))
                 .build();
     }
