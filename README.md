@@ -81,11 +81,10 @@
 
 ### Запуск проекта
 
-Находясь в директории проекта, последовательно выполни команды:
+Находясь в директории проекта, последовательно выполни следующие команды:
 
 ```bash
-mvn clean install
-mvn package
+mvn clean package -DskipTests
 java -jar target/Credit-Service-0.0.1-SNAPSHOT.jar
 ```
 

@@ -8,13 +8,14 @@ import org.junit.jupiter.api.Assertions;
 
 @RequiredArgsConstructor
 public class ErrorCondition implements Condition {
+    private final String expectedErrorCode;
     private final String expectedMessage;
 
     @Override
     public void check(ValidatableResponse response) {
-        CustomError customErrorResponseBody = response.extract().jsonPath().getObject("", CustomError.class);
+        CustomError customErrorResponseBody = response.extract().jsonPath().getObject("error", CustomError.class);
         Assertions.assertAll(
-                () -> Assertions.assertEquals("err", customErrorResponseBody.getCode()),
+                () -> Assertions.assertEquals(expectedErrorCode, customErrorResponseBody.getCode()),
                 () -> Assertions.assertEquals(expectedMessage, customErrorResponseBody.getMessage())
         );
     }

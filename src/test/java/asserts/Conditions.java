@@ -10,8 +10,8 @@ public class Conditions {
         return new TokenCondition();
     }
 
-    public static ErrorCondition hasError(String expectedError) {
-        return new ErrorCondition(expectedError);
+    public static ErrorCondition hasError(String expectedCode, String expectedError) {
+        return new ErrorCondition(expectedCode, expectedError);
     }
 
     public static StatusCodeCondition hasStatusCode(Integer expectedStatus) {

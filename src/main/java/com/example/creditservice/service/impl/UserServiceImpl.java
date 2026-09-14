@@ -10,7 +10,9 @@ import com.example.creditservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -38,21 +40,26 @@ public class UserServiceImpl {
         try {
             userRepository.save(user);
         } catch (DataIntegrityViolationException e) {
-            // Protect against a race condition between the existence check and INSERT.
             throw new CustomException("err", "Email already in used");
         }
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+        } catch (UsernameNotFoundException e) {
+            throw new CustomException("USER_NOT_FOUND", "Пользователь не найден");
+        } catch (BadCredentialsException e) {
+            throw new CustomException("INVALID_CREDENTIALS", "Неверный email или пароль");
+        }
 
         var user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new CustomException("err", "User not found"));
+                .orElseThrow(() -> new CustomException("USER_NOT_FOUND", "Пользователь не найден"));
 
         var jwtToken = jwtService.generateToken(user);
 
