@@ -3,18 +3,22 @@ package tests;
 import asserts.Conditions;
 import com.example.creditservice.model.request.AuthenticationRequest;
 import com.example.creditservice.model.request.RegisterRequest;
+import com.example.creditservice.model.request.TariffDTO;
+import factories.TariffFactory;
 import factories.UserFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import steps.TariffSteps;
 import steps.UserSteps;
 
 import java.util.stream.Stream;
 
 public class apiTests {
     private final UserSteps userSteps = new UserSteps();
+    private final TariffSteps tariffSteps = new TariffSteps();
 
     private static Stream<Arguments> negativeRegisterProvider() {
         return Stream.of(
@@ -44,6 +48,10 @@ public class apiTests {
         );
     }
 
+    private static Stream<Object> positivePasswordBoundaryValuesProvider() {
+        return Stream.of(UserFactory.registerWith8CharactersInPassword(), UserFactory.registerWith9CharactersInPassword(), UserFactory.registerWith24CharactersInPassword(), UserFactory.registerWith25CharactersInPassword());
+    }
+
     private static Stream<Arguments> negativeAuthenticateProvider() {
         return Stream.of(
                 Arguments.of(UserFactory.authWithEmptyEmail(), "VALIDATION_ERROR", "email is required"),
@@ -54,6 +62,15 @@ public class apiTests {
         );
     }
 
+    private static Stream<Arguments> skipTariffKeyProvider() {
+        return Stream.of(
+                Arguments.of(TariffFactory.addTariffWithEmptyType(), "VALIDATION_ERROR", "type is required"),
+                Arguments.of(TariffFactory.addTariffWithNullType(), "VALIDATION_ERROR", "type is required"),
+                Arguments.of(TariffFactory.addTariffWithEmptyInterestRate(), "VALIDATION_ERROR", "interest rate is required"),
+                Arguments.of(TariffFactory.addTariffWithNullInterestRate(), "VALIDATION_ERROR", "interest rate is required")
+        );
+    }
+
     @Test
     @DisplayName("Позитивный тест регистрации пользователя")
     public void positiveRegisterTest() {
@@ -61,6 +78,17 @@ public class apiTests {
         userSteps.register(registerBody)
                 .should(Conditions.hasStatusCode(200));
         userSteps.authenticateUser(UserFactory.authWithRegisterData(registerBody))
+                .should(Conditions.hasStatusCode(200))
+                .should(Conditions.hasNotEmptyToken());
+    }
+
+    @MethodSource("positivePasswordBoundaryValuesProvider")
+    @ParameterizedTest
+    @DisplayName("регистрация с позитивными граничными значениями пароля")
+    public void registerWithPositivePasswordBoundaryValuesTest(RegisterRequest registerRequest) {
+        userSteps.register(registerRequest)
+                .should(Conditions.hasStatusCode(200));
+        userSteps.authenticateUser(UserFactory.authWithRegisterData(registerRequest))
                 .should(Conditions.hasStatusCode(200))
                 .should(Conditions.hasNotEmptyToken());
     }
@@ -82,6 +110,14 @@ public class apiTests {
                 .should(Conditions.hasNotEmptyToken());
     }
 
+    @Test
+    @DisplayName("Позитивный тест аутентификации обычного пользователя")
+    public void userAuthenticateTest() {
+        userSteps.authenticateUser(UserFactory.authUser())
+                .should(Conditions.hasStatusCode(200))
+                .should(Conditions.hasNotEmptyToken());
+    }
+
     @MethodSource("negativeAuthenticateProvider")
     @ParameterizedTest
     @DisplayName("Негативный тест аутентификации пользователя")
@@ -89,5 +125,103 @@ public class apiTests {
         userSteps.authenticateUser(authenticationRequestBody)
                 .should(Conditions.hasStatusCode(400))
                 .should(Conditions.hasError(expectedErrorCode, expectedErrorMessage));
+    }
+
+    @Test
+    @DisplayName("Получение списка тарифов")
+    public void getTariffsTest() {
+        tariffSteps.getTariffs()
+                .should(Conditions.hasStatusCode(200))
+                .should(Conditions.hasCorrectTariffList());
+    }
+
+    @Test
+    @DisplayName("Добавление тарифа администратором")
+    public void addTariffAdminTest() {
+        String token = userSteps.authenticateUser(UserFactory.authAdmin()).asJwt();
+        TariffDTO tariffBody = TariffFactory.addTariff();
+        tariffSteps.addTariff(tariffBody, token)
+                .should(Conditions.hasStatusCode(200));
+        tariffSteps.getTariffs()
+                .should(Conditions.hasCreatedTariffInList(tariffBody));
+    }
+
+    @Test
+    @DisplayName("Добавление нескольких одинаковых тарифов администратором")
+    public void addMultipleIdenticalTariffAdminTest() {
+        String token = userSteps.authenticateUser(UserFactory.authAdmin()).asJwt();
+        TariffDTO tariff = TariffFactory.addTariff();
+        tariffSteps.addTariff(tariff, token)
+                .should(Conditions.hasStatusCode(200));
+        tariffSteps.addTariff(tariff, token)
+                .should(Conditions.hasStatusCode(400))
+                .should(Conditions.hasError("err", "type already in used"));
+    }
+
+    @MethodSource("skipTariffKeyProvider")
+    @ParameterizedTest
+    @DisplayName("Добавление тарифа без обязательного поля и с null значением")
+    public void addTariffWithoutAnyEmptyNullKeyTest(TariffDTO tariff, String expectedErrorCode, String expectedErrorMessage) {
+        String token = userSteps.authenticateUser(UserFactory.authAdmin()).asJwt();
+        tariffSteps.addTariff(tariff, token)
+                .should(Conditions.hasStatusCode(400))
+                .should(Conditions.hasError(expectedErrorCode, expectedErrorMessage));
+    }
+
+    @Test
+    @DisplayName("Добавление тарифа обычным пользователем")
+    public void addTariffUserTest() {
+        String token = userSteps.authenticateUser(UserFactory.authUser()).asJwt();
+        tariffSteps.addTariff(TariffFactory.addTariff(), token)
+                .should(Conditions.hasStatusCode(403))
+                .should(Conditions.hasError("err", "Forbidden for this user"));
+    }
+
+    @Test
+    @DisplayName("Добавление тарифа без авторизации")
+    public void addTariffWithoutAuthenticateTest() {
+        tariffSteps.addTariff(TariffFactory.addTariff(), "")
+                .should(Conditions.hasStatusCode(401))
+                .should(Conditions.hasError("err", "token is required"));
+    }
+
+    @Test
+    @DisplayName("Удаление существующего тарифа администратором")
+    public void deleteExistsTariffAdminTest() {
+        String token = userSteps.authenticateUser(UserFactory.authAdmin()).asJwt();
+        Long randTId = tariffSteps.getTariffs().chooseRandomTariffId();
+        tariffSteps.deleteTariff(randTId, token)
+                .should(Conditions.hasStatusCode(200));
+        tariffSteps.deleteTariff(randTId, token)
+                .should(Conditions.hasStatusCode(400))
+                .should(Conditions.hasError("TARIFF_NOT_FOUND", "Тариф не найден"));
+    }
+
+    @Test
+    @DisplayName("Удаление несуществующего тарифа")
+    public void deleteNotExistsTariffTest() {
+        String token = userSteps.authenticateUser(UserFactory.authAdmin()).asJwt();
+        tariffSteps.deleteTariff((long) -1, token)
+                .should(Conditions.hasStatusCode(400))
+                .should(Conditions.hasError("TARIFF_NOT_FOUND", "Тариф не найден"));
+    }
+
+    @Test
+    @DisplayName("Удаление тарифа без авторизации")
+    public void deleteTariffWithoutAuthenticate() {
+        Long randTId = tariffSteps.getTariffs().chooseRandomTariffId();
+        tariffSteps.deleteTariff(randTId, "")
+                .should(Conditions.hasStatusCode(401))
+                .should(Conditions.hasError("err", "token is required"));
+    }
+
+    @Test
+    @DisplayName("Удаление тарифа обычным пользователем")
+    public void deleteTariffUserTest() {
+        String token = userSteps.authenticateUser(UserFactory.authUser()).asJwt();
+        Long randTId = tariffSteps.getTariffs().chooseRandomTariffId();
+        tariffSteps.deleteTariff(randTId, token)
+                .should(Conditions.hasStatusCode(403))
+                .should(Conditions.hasError("err", "Forbidden for this user"));
     }
 }

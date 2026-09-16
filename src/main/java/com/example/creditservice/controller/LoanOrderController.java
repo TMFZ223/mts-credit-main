@@ -57,7 +57,7 @@ public class LoanOrderController {
     }
 
     @DeleteMapping("/deleteTariff")
-    public void deleteTariff(@RequestParam long id) {
+    public void deleteTariff(@RequestParam Long id) {
         tariffService.deleteById(id);
     }
 

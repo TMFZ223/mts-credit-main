@@ -1,8 +1,10 @@
 package com.example.creditservice.repository.impl;
 
 import com.example.creditservice.model.tariff.Tariff;
+import com.example.creditservice.model.user.User;
 import com.example.creditservice.repository.TariffRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -15,6 +17,7 @@ public class TariffRepositoryImpl implements TariffRepository {
     private final JdbcTemplate jdbcTemplate;
     private final String SELECT_ALL_FROM_TABLE = "select * from TARIFF";
     private final String SELECT_EXISTS_BY_ID = "SELECT EXISTS (select * from TARIFF where ID = ?)";
+    private final String SELECT_BY_TYPE = "SELECT * FROM TARIFF WHERE type = ?";
     private final String INSERT_INTO_TABLE = "insert into TARIFF (TYPE, INTEREST_RATE) values (?, ?)";
     private final String DELETE_FROM_TABLE = "delete from TARIFF where ID = ?";
 
@@ -31,6 +34,21 @@ public class TariffRepositoryImpl implements TariffRepository {
                         SELECT_ALL_FROM_TABLE,
                         new BeanPropertyRowMapper<>(Tariff.class))
         );
+    }
+
+    @Override
+    public Optional<Tariff> findByType(String type) {
+        try {
+            return Optional.ofNullable(
+                    jdbcTemplate.queryForObject(
+                            SELECT_BY_TYPE,
+                            new BeanPropertyRowMapper<>(Tariff.class),
+                            type
+                    )
+            );
+        } catch (EmptyResultDataAccessException e) {
+            return Optional.empty();
+        }
     }
 
     @Override
