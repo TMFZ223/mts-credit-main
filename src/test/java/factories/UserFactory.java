@@ -57,6 +57,22 @@ public class UserFactory {
         return faker.internet().password(7, 7);
     }
 
+    private static String generate8CharactersPassword() {
+        return faker.internet().password(8, 8);
+    }
+
+    private static String generate9CharactersPassword() {
+        return faker.internet().password(9, 9);
+    }
+
+    private static String generate24CharactersPassword() {
+        return faker.internet().password(24, 24);
+    }
+
+    private static String generate25CharactersPassword() {
+        return faker.internet().password(25, 25);
+    }
+
     private static String generate26CharactersPassword() {
         return faker.internet().password(26, 26);
     }
@@ -96,6 +112,13 @@ public class UserFactory {
         return AuthenticationRequest.builder()
                 .email(PropertyReader.getProperty("admin.email"))
                 .password(PropertyReader.getProperty("admin.password"))
+                .build();
+    }
+
+    public static AuthenticationRequest authUser() {
+        return AuthenticationRequest.builder()
+                .email(PropertyReader.getProperty("user.email"))
+                .password(PropertyReader.getProperty("user.password"))
                 .build();
     }
 
@@ -291,6 +314,42 @@ public class UserFactory {
                 .lastname(generateLastName())
                 .email(generateValidEmail())
                 .password(generate7CharactersPassword())
+                .build();
+    }
+
+    public static RegisterRequest registerWith8CharactersInPassword() {
+        return RegisterRequest.builder()
+                .firstname(generateFirstName())
+                .lastname(generateLastName())
+                .email(generateValidEmail())
+                .password(generate8CharactersPassword())
+                .build();
+    }
+
+    public static RegisterRequest registerWith9CharactersInPassword() {
+        return RegisterRequest.builder()
+                .firstname(generateFirstName())
+                .lastname(generateLastName())
+                .email(generateValidEmail())
+                .password(generate9CharactersPassword())
+                .build();
+    }
+
+    public static RegisterRequest registerWith24CharactersInPassword() {
+        return RegisterRequest.builder()
+                .firstname(generateFirstName())
+                .lastname(generateLastName())
+                .email(generateValidEmail())
+                .password(generate24CharactersPassword())
+                .build();
+    }
+
+    public static RegisterRequest registerWith25CharactersInPassword() {
+        return RegisterRequest.builder()
+                .firstname(generateFirstName())
+                .lastname(generateLastName())
+                .email(generateValidEmail())
+                .password(generate25CharactersPassword())
                 .build();
     }
 

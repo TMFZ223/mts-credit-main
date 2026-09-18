@@ -23,9 +23,12 @@ public class TariffServiceImpl implements TariffService {
 
     @Override
     public int save(TariffDTO tariffDTO) {
+        if (tariffRepository.findByType(tariffDTO.getType()).isPresent()) {
+            throw new CustomException("err", "type already in used");
+        }
         Tariff tariff = new Tariff();
         tariff.setType(tariffDTO.getType());
-        tariff.setInterestRate(tariffDTO.getInterest_rate());
+        tariff.setInterestRate(tariffDTO.getInterestRate());
         return tariffRepository.save(tariff);
     }
 
